@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>ImpactLink | Volunteer & NGO Portal</title>
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/python-visualization/folium@main/folium/templates/leaflet_heat.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+
+        :root {
+            --primary: #22d3ee;
+            --secondary: #34d399;
+            --accent: #0891b2;
+            --bg-deep: #021b24;
+            --bg-mid: #042f3e;
+            --bg-card: rgba(255, 255, 255, 0.05);
+            --border: rgba(34, 211, 238, 0.18);
+            --text: #e0f7fa;
+            --text-muted: #7ecfdf;
+            --text-dim: #4a9aaa;
+            --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 8px 28px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
+            --radius-sm: 10px;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background:
+                radial-gradient(ellipse at 10% 10%, rgba(8, 145, 178, 0.25) 0%, transparent 50%),
+                radial-gradient(ellipse at 90% 90%, rgba(52, 211, 153, 0.18) 0%, transparent 50%),
+                linear-gradient(160deg, #021b24 0%, #031f2c 50%, #042f3e 100%);
+            background-attachment: fixed;
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            padding: 36px 20px;
+            min-height: 100vh;
+        }
+
+        /* ── APP SHELL ── */
+        .app-container {
+            width: 100%;
+            max-width: 700px;
+            background: rgba(4, 47, 62, 0.6);
+            backdrop-filter: blur(24px) saturate(1.6);
+            -webkit-backdrop-filter: blur(24px) saturate(1.6);
+            padding: 36px 32px;
+            border-radius: var(--radius-lg);
+            border: 1px solid rgba(34, 211, 238, 0.15);
+            box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(34, 211, 238, 0.08);
+            animation: fadeUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(22px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── LOGO ── */
+        h2 {
+            text-align: center;
+            font-size: 32px;
+            font-weight: 900;
+            letter-spacing: -1px;
+            margin-bottom: 0;
+            line-height: 1;
+        }
+        h2 .logo-impact {
+            background: linear-gradient(110deg, #22d3ee 0%, #67e8f9 45%, #34d399 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        h2 .logo-link {
+            color: rgba(255, 255, 255, 0.85);
+            font-weight: 400;
+            letter-spacing: -0.5px;
+        }
+        h2::after {
+            content: 'volunteer & ngo network';
+            display: block;
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 3.5px;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, #22d3ee, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-top: 8px;
+            margin-bottom: 26px;
+            opacity: 0.75;
+        }
+
+        /* ── SECTION HEADINGS ── */
+        h4 {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--text-dim);
+            margin-bottom: 12px;
+        }
+
+        /* ── TABS ── */
+        .tabs {
+            display: flex;
+            margin-bottom: 24px;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: var(--radius-sm);
+            padding: 5px;
+            gap: 5px;
+            border: 1px solid var(--border);
+        }
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 11px 16px;
+            cursor: pointer;
+            font-size: 13.5px;
+            font-weight: 600;
+            color: var(--text-dim);
+            border-radius: 8px;
+            transition: all 0.22s ease;
+            letter-spacing: 0.2px;
+        }
+        .tab:hover:not(.active) {
+            color: var(--primary);
+            background: rgba(34, 211, 238, 0.07);
+        }
+        .tab.active {
+            background: rgba(34, 211, 238, 0.12);
+            color: #67e8f9;
+            border: 1px solid rgba(34, 211, 238, 0.28);
+            box-shadow: 0 0 18px rgba(34, 211, 238, 0.08), inset 0 1px 0 rgba(34, 211, 238, 0.12);
+        }
+
+        /* ── LABELS ── */
+        label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.9px;
+            display: block;
+            margin: 16px 0 5px;
+        }
+
+        /* ── INPUTS & SELECTS ── */
+        input, select {
+            width: 100%;
+            padding: 13px 16px;
+            margin: 0 0 4px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-family: inherit;
+            color: var(--text);
+            background: rgba(2, 27, 36, 0.5);
+            transition: all 0.2s ease;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+        select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2322d3ee' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            background-color: rgba(2, 27, 36, 0.5);
+            padding-right: 36px;
+            cursor: pointer;
+        }
+        input::placeholder { color: var(--text-dim); }
+        input:focus, select:focus {
+            border-color: rgba(34, 211, 238, 0.55);
+            background: rgba(2, 27, 36, 0.8);
+            box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1), 0 0 14px rgba(34, 211, 238, 0.08);
+            outline: none;
+            color: #e0f7fa;
+        }
+        select option { background: #042f3e; color: #e0f7fa; }
+
+        /* ── BUTTONS ── */
+        button {
+            width: 100%;
+            padding: 13px 20px;
+            margin-top: 12px;
+            border-radius: var(--radius-sm);
+            border: none;
+            background: linear-gradient(135deg, #0891b2 0%, #0e7490 40%, #059669 100%);
+            color: white;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: inherit;
+            letter-spacing: 0.3px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        button::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(34, 211, 238, 0.15), transparent);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(8, 145, 178, 0.4), 0 0 20px rgba(34, 211, 238, 0.15);
+        }
+        button:hover::after { opacity: 1; }
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 12px rgba(8, 145, 178, 0.25);
+        }
+
+        /* ── CARDS ── */
+        .card {
+            padding: 18px 20px;
+            margin-top: 16px;
+            border-radius: var(--radius-md);
+            background: rgba(4, 47, 62, 0.7);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            transition: all 0.25s ease;
+            backdrop-filter: blur(8px);
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md), 0 0 20px rgba(34, 211, 238, 0.07);
+            border-color: rgba(34, 211, 238, 0.32);
+        }
+        .card strong { color: #a5f3fc; font-size: 15px; }
+        .card small { color: var(--text-muted); }
+        .card p { color: var(--text); }
+
+        /* ── BADGE ── */
+        .badge {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: rgba(52, 211, 153, 0.15);
+            color: #34d399;
+            padding: 5px 11px;
+            border-radius: 99px;
+            font-size: 11.5px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            border: 1px solid rgba(52, 211, 153, 0.28);
+        }
+
+        /* ── URGENT CARD ── */
+        .urgent {
+            border-color: rgba(248, 113, 113, 0.35);
+            background: rgba(127, 29, 29, 0.18);
+        }
+        .urgent::before {
+            content: '● URGENT';
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 1.2px;
+            color: #f87171;
+            margin-bottom: 8px;
+        }
+        .urgent .badge {
+            background: rgba(248, 113, 113, 0.15);
+            color: #fca5a5;
+            border-color: rgba(248, 113, 113, 0.3);
+        }
+
+        /* ── MAP BUTTON ── */
+        .map-btn {
+            background: rgba(34, 211, 238, 0.08);
+            color: #67e8f9;
+            border: 1px solid rgba(34, 211, 238, 0.22);
+            font-weight: 600;
+        }
+        .map-btn:hover {
+            background: rgba(34, 211, 238, 0.15);
+            box-shadow: 0 6px 20px rgba(34, 211, 238, 0.15);
+            color: #a5f3fc;
+            border-color: rgba(34, 211, 238, 0.4);
+        }
+
+        div[style*="border-bottom"] {
+            border-bottom: 1px solid rgba(34, 211, 238, 0.15) !important;
+            margin-bottom: 24px;
+            padding-bottom: 24px !important;
+        }
+        p[style*="font-size: 0.8em"] {
+            background: rgba(34, 211, 238, 0.06);
+            border-radius: 8px;
+            padding: 8px 12px;
+            border-left: 3px solid rgba(34, 211, 238, 0.3);
+            color: var(--text-muted);
+            border-radius: 0;
+        }
+
+        /* ── HEATMAP TAB ── */
+        #map-view {
+            display: none;
+        }
+
+        .map-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .map-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 0.3px;
+        }
+        .map-title span {
+            color: var(--primary);
+        }
+
+        .map-legend {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            background: rgba(2, 27, 36, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 7px 14px;
+        }
+        .map-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .map-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .map-stat {
+            background: rgba(2, 27, 36, 0.5);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            text-align: center;
+        }
+        .map-stat .stat-val {
+            font-size: 22px;
+            font-weight: 900;
+            background: linear-gradient(110deg, #22d3ee, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.1;
+        }
+        .map-stat .stat-lbl {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-dim);
+            margin-top: 3px;
+        }
+
+        /* Map container — fills a fixed height, no body scroll bleed */
+        .map-wrapper {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            border: 1px solid rgba(34, 211, 238, 0.2);
+            box-shadow: var(--shadow-md), 0 0 0 1px rgba(34, 211, 238, 0.06) inset;
+        }
+        #impactmap {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Override leaflet attribution colour for dark theme */
+        .leaflet-control-attribution {
+            background: rgba(2, 27, 36, 0.75) !important;
+            color: var(--text-dim) !important;
+            font-size: 10px !important;
+        }
+        .leaflet-control-attribution a { color: var(--primary) !important; }
+
+        .map-note {
+            margin-top: 10px;
+            font-size: 11.5px;
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .map-note::before {
+            content: '●';
+            color: #f87171;
+            font-size: 8px;
+            animation: pulse 1.8s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* ── SCROLLBAR ── */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(34, 211, 238, 0.2); border-radius: 99px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(34, 211, 238, 0.35); }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 600px) {
+            body { padding: 16px 12px; }
+            .app-container { padding: 24px 18px; border-radius: var(--radius-md); }
+            h2 { font-size: 26px; }
+            button { font-size: 13.5px; padding: 12px 16px; }
+            .tab { padding: 10px; font-size: 12px; }
+            input, select { font-size: 13.5px; padding: 12px 14px; }
+            .map-wrapper { height: 300px; }
+            .map-stats { grid-template-columns: repeat(3, 1fr); }
+            .map-legend { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <h2><span class="logo-impact">Impact</span><span class="logo-link">Link</span></h2>
+
+        <div class="tabs">
+            <div id="v-tab"   class="tab active" onclick="switchTab('volunteer')">Volunteer Portal</div>
+            <div id="n-tab"   class="tab"        onclick="switchTab('ngo')">NGO Dashboard</div>
+            <div id="m-tab"   class="tab"        onclick="switchTab('map')">🗺 Needs Map</div>
+        </div>
+
+        <!-- ── VOLUNTEER VIEW ── -->
+        <div id="volunteer-view">
+            <input type="text" id="v-name" placeholder="Full Name">
+
+            <label>Skill Expertise:</label>
+            <select id="v-skill">
+                <optgroup label="Medical (Urgency 5)">
+                    <option value="Surgeon">Surgeon</option>
+                    <option value="Nurse">Nurse</option>
+                    <option value="EMT">EMT</option>
+                    <option value="First Aid">First Aid</option>
+                    <option value="Trauma Care">Trauma Care</option>
+                </optgroup>
+                <optgroup label="Operations (Urgency 4)">
+                    <option value="Search & Rescue">Search & Rescue</option>
+                    <option value="Logistics">Logistics</option>
+                    <option value="Heavy Lifting">Heavy Lifting</option>
+                    <option value="Shelter Management">Shelter Management</option>
+                </optgroup>
+                <optgroup label="Social (Urgency 3)">
+                    <option value="Teaching">Teaching</option>
+                    <option value="Mentoring">Mentoring</option>
+                    <option value="Translation">Translation</option>
+                    <option value="Child Care">Child Care</option>
+                </optgroup>
+                <optgroup label="Support (Urgency 2)">
+                    <option value="IT Support">IT Support</option>
+                    <option value="Data Entry">Data Entry</option>
+                    <option value="Accounting">Accounting</option>
+                    <option value="Social Media">Social Media</option>
+                </optgroup>
+                <optgroup label="General (Urgency 1)">
+                    <option value="Cooking">Cooking</option>
+                    <option value="Gardening">Gardening</option>
+                    <option value="Cleaning">Cleaning</option>
+                    <option value="Event Setup">Event Setup</option>
+                </optgroup>
+            </select>
+
+            <label>Your Availability:</label>
+            <select id="v-availability">
+                <option value="Full-time">Full-time (Emergency Ready)</option>
+                <option value="Weekday">Weekday (9-5)</option>
+                <option value="Weekend">Weekend / Evening</option>
+            </select>
+
+            <button onclick="findMatches()">Show Available Emergencies</button>
+            <div id="v-results"></div>
+        </div>
+
+        <!-- ── NGO VIEW ── -->
+        <div id="ngo-view" style="display:none;">
+            <div style="border-bottom: 2px solid #eee; margin-bottom: 20px; padding-bottom: 10px;">
+                <h4>Step 1: Post New Requirement</h4>
+                <input type="text" id="n-name-post" placeholder="NGO Name">
+                <select id="n-skill-post">
+                    <optgroup label="Medical (Urgency 5)">
+                        <option value="Surgeon">Surgeon</option>
+                        <option value="Nurse">Nurse</option>
+                        <option value="EMT">EMT</option>
+                        <option value="First Aid">First Aid</option>
+                        <option value="Trauma Care">Trauma Care</option>
+                    </optgroup>
+                    <optgroup label="Operations (Urgency 4)">
+                        <option value="Search & Rescue">Search & Rescue</option>
+                        <option value="Logistics">Logistics</option>
+                        <option value="Heavy Lifting">Heavy Lifting</option>
+                        <option value="Shelter Management">Shelter Management</option>
+                    </optgroup>
+                    <optgroup label="Social (Urgency 3)">
+                        <option value="Teaching">Teaching</option>
+                        <option value="Mentoring">Mentoring</option>
+                        <option value="Translation">Translation</option>
+                        <option value="Child Care">Child Care</option>
+                    </optgroup>
+                    <optgroup label="Support (Urgency 2)">
+                        <option value="IT Support">IT Support</option>
+                        <option value="Data Entry">Data Entry</option>
+                        <option value="Accounting">Accounting</option>
+                        <option value="Social Media">Social Media</option>
+                    </optgroup>
+                    <optgroup label="General (Urgency 1)">
+                        <option value="Cooking">Cooking</option>
+                        <option value="Gardening">Gardening</option>
+                        <option value="Cleaning">Cleaning</option>
+                        <option value="Event Setup">Event Setup</option>
+                    </optgroup>
+                </select>
+                <p style="font-size: 0.8em; color: #666;">Urgency level is assigned automatically.</p>
+                <button onclick="postRequirement()">Post Requirement</button>
+            </div>
+
+            <div>
+                <h4>Step 2: Update Status</h4>
+                <input type="text" id="n-task-id" placeholder="Paste Task ID here">
+                <select id="n-status">
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed / Remove</option>
+                </select>
+                <button onclick="updateNGOStatus()" style="background: var(--secondary);">Update Task Status</button>
+            </div>
+        </div>
+
+        <!-- ── MAP VIEW ── -->
+        <div id="map-view">
+            <!-- Stats row -->
+            <div class="map-stats">
+                <div class="map-stat">
+                    <div class="stat-val">200</div>
+                    <div class="stat-lbl">Active Tasks</div>
+                </div>
+                <div class="map-stat">
+                    <div class="stat-val">47</div>
+                    <div class="stat-lbl">Critical Zones</div>
+                </div>
+                <div class="map-stat">
+                    <div class="stat-val">Delhi</div>
+                    <div class="stat-lbl">Coverage Area</div>
+                </div>
+            </div>
+
+            <!-- Header + legend -->
+            <div class="map-header">
+                <div class="map-title">Community Needs · <span>Urgency Heatmap</span></div>
+                <div class="map-legend">
+                    <div class="map-legend-item">
+                        <div class="legend-dot" style="background:#34d399;"></div> Low
+                    </div>
+                    <div class="map-legend-item">
+                        <div class="legend-dot" style="background:#fbbf24;"></div> Medium
+                    </div>
+                    <div class="map-legend-item">
+                        <div class="legend-dot" style="background:#f87171;"></div> Critical
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map -->
+            <div class="map-wrapper">
+                <div id="impactmap"></div>
+            </div>
+
+            <p class="map-note">Live urgency data · brighter zones indicate higher-priority community needs</p>
+        </div>
+    </div>
+
+    <script>
+        /* ─────────────────────────────
+           TAB SWITCHER
+        ───────────────────────────── */
+        let mapInitialised = false;
+
+        function switchTab(type) {
+            document.getElementById('volunteer-view').style.display = type === 'volunteer' ? 'block' : 'none';
+            document.getElementById('ngo-view').style.display       = type === 'ngo'       ? 'block' : 'none';
+            document.getElementById('map-view').style.display       = type === 'map'       ? 'block' : 'none';
+
+            document.getElementById('v-tab').className = type === 'volunteer' ? 'tab active' : 'tab';
+            document.getElementById('n-tab').className = type === 'ngo'       ? 'tab active' : 'tab';
+            document.getElementById('m-tab').className = type === 'map'       ? 'tab active' : 'tab';
+
+            // Initialise Leaflet only once, and only after the div is visible
+            if (type === 'map' && !mapInitialised) {
+                initMap();
+                mapInitialised = true;
+            }
+        }
+
+        /* ─────────────────────────────
+           LEAFLET HEATMAP
+        ───────────────────────────── */
+        function initMap() {
+            const map = L.map('impactmap', {
+                center: [28.6139, 77.209],
+                zoom: 11,
+                zoomControl: true,
+                preferCanvas: false
+            });
+
+            L.tileLayer(
+                'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+                {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                    subdomains: 'abcd',
+                    maxZoom: 20
+                }
+            ).addTo(map);
+
+            const heatData = [[28.586685, 77.179115, 2], [28.683035, 77.200879, 2], [28.669181, 77.13768, 1], [28.525228, 77.187299, 2], [28.532948, 77.23051, 4], [28.578939, 77.145277, 4], [28.667872, 77.20568, 3], [28.609278, 77.22395, 5], [28.571823, 77.11995, 4], [28.679175, 77.276453, 3], [28.665639, 77.28747, 1], [28.656765, 77.132143, 1], [28.547207, 77.294594, 1], [28.653786, 77.224715, 3], [28.695447, 77.24417, 5], [28.64974, 77.177279, 3], [28.545192, 77.194252, 2], [28.594505, 77.223037, 2], [28.672852, 77.197513, 5], [28.601193, 77.215986, 2], [28.539151, 77.287848, 2], [28.551354, 77.189843, 5], [28.636581, 77.217776, 5], [28.594182, 77.217188, 1], [28.682492, 77.14643, 3], [28.559883, 77.256151, 2], [28.590423, 77.300077, 5], [28.534269, 77.268446, 3], [28.695243, 77.307178, 3], [28.588887, 77.191906, 4], [28.51894, 77.2932, 3], [28.595005, 77.159057, 2], [28.581065, 77.219308, 4], [28.593461, 77.289004, 5], [28.607473, 77.307451, 1], [28.583154, 77.219319, 2], [28.70199, 77.271384, 4], [28.695819, 77.212702, 4], [28.580472, 77.11164, 2], [28.54868, 77.302288, 5], [28.686565, 77.244731, 3], [28.699523, 77.270709, 1], [28.575606, 77.296515, 1], [28.623071, 77.253022, 5], [28.602652, 77.138085, 1], [28.609086, 77.228331, 4], [28.635843, 77.280449, 2], [28.604792, 77.302006, 5], [28.627841, 77.162941, 3], [28.523247, 77.253844, 3], [28.536273, 77.300428, 1], [28.604391, 77.295691, 2], [28.523797, 77.168754, 4], [28.554408, 77.168275, 1], [28.620104, 77.209645, 1], [28.713108, 77.207654, 3], [28.573499, 77.226323, 4], [28.649079, 77.109472, 1], [28.516784, 77.155871, 5], [28.659544, 77.169186, 5], [28.626394, 77.192477, 1], [28.582159, 77.134188, 3], [28.532346, 77.147912, 1], [28.660799, 77.165627, 2], [28.547784, 77.268277, 4], [28.685569, 77.139808, 4], [28.548536, 77.170188, 5], [28.606782, 77.281385, 2], [28.614604, 77.1127, 3], [28.654933, 77.288443, 2], [28.51792, 77.218319, 4], [28.557783, 77.175124, 1], [28.519293, 77.154672, 2], [28.641613, 77.136486, 1], [28.603876, 77.11196, 5], [28.522383, 77.135687, 3], [28.539807, 77.194365, 1], [28.616868, 77.148192, 4], [28.576206, 77.276369, 2], [28.599673, 77.113641, 2], [28.612144, 77.237736, 5], [28.689642, 77.236768, 5], [28.521395, 77.13654, 2], [28.597019, 77.151913, 2], [28.515946, 77.283274, 4], [28.612074, 77.199076, 4], [28.707811, 77.228683, 5], [28.578991, 77.24282, 4], [28.574821, 77.279093, 4], [28.590054, 77.145608, 3], [28.699341, 77.200244, 3], [28.621125, 77.202871, 4], [28.534468, 77.160021, 4], [28.5554, 77.26323, 4], [28.603927, 77.133979, 4], [28.693949, 77.208528, 5], [28.593838, 77.220046, 5], [28.704421, 77.16904, 2], [28.588813, 77.205156, 4], [28.711761, 77.28567, 1], [28.687055, 77.13845, 3], [28.562778, 77.26665, 1], [28.68981, 77.285948, 5], [28.599859, 77.172622, 2], [28.581587, 77.230984, 2], [28.596083, 77.134443, 5], [28.602491, 77.207248, 3], [28.547941, 77.113198, 4], [28.563315, 77.248927, 4], [28.688534, 77.2009, 2], [28.641732, 77.295919, 4], [28.620492, 77.200276, 1], [28.553516, 77.145047, 1], [28.591374, 77.196726, 4], [28.54119, 77.286802, 5], [28.606815, 77.28126, 5], [28.557462, 77.181872, 4], [28.568308, 77.183689, 4], [28.684717, 77.148647, 3], [28.54075, 77.308354, 4], [28.590933, 77.209655, 2], [28.622629, 77.221014, 5], [28.554138, 77.295359, 4], [28.643882, 77.135027, 4], [28.570736, 77.206281, 2], [28.619586, 77.199945, 1], [28.684947, 77.200587, 2], [28.633029, 77.297099, 3], [28.701063, 77.294146, 2], [28.520533, 77.111865, 5], [28.57354, 77.268527, 5], [28.67352, 77.303568, 4], [28.629194, 77.299435, 1], [28.613431, 77.297365, 1], [28.527399, 77.278421, 2], [28.676712, 77.195563, 3], [28.604512, 77.19859, 5], [28.559749, 77.149031, 2], [28.675348, 77.238658, 5], [28.619797, 77.297118, 5], [28.527242, 77.228329, 2], [28.621837, 77.239077, 3], [28.599889, 77.24901, 2], [28.542378, 77.288927, 2], [28.685735, 77.157926, 2], [28.624604, 77.28187, 2], [28.59342, 77.296583, 1], [28.657748, 77.176671, 1], [28.599923, 77.193945, 2], [28.612289, 77.254064, 1], [28.633109, 77.109633, 2], [28.63185, 77.147262, 2], [28.674311, 77.272435, 5], [28.553196, 77.164018, 4], [28.568774, 77.272444, 4], [28.622756, 77.262125, 5], [28.566151, 77.228314, 4], [28.626517, 77.11047, 3], [28.608687, 77.261863, 3], [28.624898, 77.158372, 1], [28.555262, 77.293167, 2], [28.633946, 77.295025, 2], [28.641339, 77.208685, 2], [28.637718, 77.141254, 1], [28.639021, 77.149757, 2], [28.633669, 77.236896, 1], [28.567649, 77.289721, 5], [28.664407, 77.211726, 5], [28.639058, 77.276715, 2], [28.681769, 77.295922, 1], [28.534687, 77.290571, 3], [28.614039, 77.271174, 2], [28.535156, 77.275297, 3], [28.651334, 77.130381, 2], [28.623229, 77.120769, 2], [28.693013, 77.179373, 5], [28.611268, 77.170377, 4], [28.593423, 77.251367, 2], [28.525719, 77.132088, 3], [28.637952, 77.27853, 1], [28.672592, 77.296083, 3], [28.537347, 77.19857, 4], [28.643398, 77.117058, 4], [28.692413, 77.210966, 1], [28.646952, 77.136913, 5], [28.656443, 77.223552, 5], [28.575813, 77.158115, 2], [28.545717, 77.220136, 3], [28.632131, 77.115973, 5], [28.664903, 77.135274, 4], [28.665535, 77.247391, 4], [28.668773, 77.261196, 2], [28.587465, 77.209691, 4], [28.604207, 77.275241, 1], [28.625946, 77.157872, 5], [28.596084, 77.118242, 5], [28.617919, 77.281562, 5], [28.59049, 77.19983, 3], [28.625883, 77.284854, 1], [28.55324, 77.258887, 2]];
+
+            L.heatLayer(heatData, {
+                minOpacity: 0.45,
+                maxZoom: 18,
+                radius: 18,
+                blur: 14,
+                gradient: { 0.2: '#34d399', 0.5: '#fbbf24', 0.8: '#f97316', 1.0: '#ef4444' }
+            }).addTo(map);
+        }
+
+        /* ─────────────────────────────
+           VOLUNTEER PORTAL
+        ───────────────────────────── */
+        async function findMatches() {
+            const results = document.getElementById('v-results');
+            const vName = document.getElementById('v-name').value;
+            if (!vName) { alert("Enter your name"); return; }
+
+            const statusRes = await fetch(`http://localhost:8000/volunteer/status/${vName}`);
+            const statusData = await statusRes.json();
+
+            if (statusData.status === "Engaged") {
+                results.innerHTML = `
+                <div class="card urgent">
+                    <h4>On Task: ${statusData.task_id}</h4>
+                    <button onclick="takeAction('${statusData.task_id}','finish')">Mark Finished</button>
+                </div>`;
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                const payload = {
+                    name: vName,
+                    skills: [document.getElementById('v-skill').value],
+                    lat: pos.coords.latitude,
+                    lon: pos.coords.longitude,
+                    availability: document.getElementById('v-availability').value
+                };
+
+                const response = await fetch('http://localhost:8000/recommend', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const matches = await response.json();
+                results.innerHTML = matches.length ? "" : "<p>No active tasks found in your area for your shift.</p>";
+
+                matches.forEach(m => {
+                    const mapLink = `https://www.google.com/maps/search/?api=1&query=${m.lat},${m.lon}`;
+                    results.innerHTML += `
+                    <div class="card ${m.urgency >= 4 ? 'urgent' : ''}">
+                        <span class="badge">${m.match_score}% Match</span>
+                        <strong>${m.ngo_name}</strong><br>
+                        <small>Need: ${m.skill} | ID: ${m.task_id}</small><br>
+                        <p style="font-size: 0.9em; margin: 10px 0;"><strong>${m.distance} km</strong> away</p>
+                        <button onclick="takeAction('${m.task_id}', 'accept')">Accept Task</button>
+                        <button class="map-btn" onclick="window.open('${mapLink}', '_blank')">View Map Location</button>
+                    </div>`;
+                });
+            });
+        }
+
+        async function takeAction(id, action) {
+            const name = document.getElementById('v-name').value;
+            const res = await fetch(`http://localhost:8000/volunteer/action?name=${name}&task_id=${id}&action=${action}`, { method: 'POST' });
+            const data = await res.json();
+            alert(data.message);
+            findMatches();
+        }
+
+        /* ─────────────────────────────
+           NGO DASHBOARD
+        ───────────────────────────── */
+        async function postRequirement() {
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                const payload = {
+                    ngo_name: document.getElementById('n-name-post').value,
+                    required_skill: document.getElementById('n-skill-post').value,
+                    lat: pos.coords.latitude,
+                    lon: pos.coords.longitude
+                };
+                try {
+                    const res = await fetch('http://localhost:8000/ngo/create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+                    alert(data.message + "\nTask ID: " + data.task_id);
+                } catch (e) { alert("Server error."); }
+            });
+        }
+
+        async function updateNGOStatus() {
+            const id     = document.getElementById('n-task-id').value;
+            const status = document.getElementById('n-status').value;
+            const res    = await fetch(`http://localhost:8000/ngo/update?task_id=${id}&status=${status}`, { method: 'POST' });
+            const data   = await res.json();
+            alert(data.message);
+        }
+    </script>
+</body>
+</html>
